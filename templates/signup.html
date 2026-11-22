@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Create Academic Account | UniSync{% endblock %}
+
+{% block content %}
+<div style="max-width: 640px; margin: 30px auto;">
+  <div class="card" style="padding: 36px 32px;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <h2>Create UniSync Account</h2>
+      <p style="margin-top: 6px;">Select your academic role to proceed with registration</p>
+    </div>
+
+    <!-- Role Switch Tabs -->
+    <div style="display: flex; gap: 8px; background: var(--bg-subtle); padding: 6px; border-radius: var(--radius-md); margin-bottom: 28px;">
+      <button type="button" id="tabStudentBtn" class="btn {% if default_role != 'teacher' %}btn-primary{% else %}btn-outline{% endif %}" style="flex: 1; border: none;" onclick="switchRoleTab('student')">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>University Student</span>
+      </button>
+      <button type="button" id="tabTeacherBtn" class="btn {% if default_role == 'teacher' %}btn-primary{% else %}btn-outline{% endif %}" style="flex: 1; border: none;" onclick="switchRoleTab('teacher')">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        <span>Faculty / Teacher</span>
+      </button>
+    </div>
+
+    <!-- STUDENT REGISTRATION FORM -->
+    <div id="studentSignupForm" style="display: {% if default_role != 'teacher' %}block{% else %}none{% endif %};">
+      <form method="POST" action="{{ url_for('auth.signup_student') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label" for="st_full_name">Full Name</label>
+          <input type="text" id="st_full_name" name="full_name" class="form-control" placeholder="e.g. Aarav Sharma" value="{{ form_data.get('full_name', '') if form_data else '' }}" required autocomplete="name">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="st_email">University Email</label>
+            <input type="email" id="st_email" name="email" class="form-control" placeholder="name@student.university.edu" value="{{ form_data.get('email', '') if form_data else '' }}" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="st_roll">Roll Number</label>
+            <input type="text" id="st_roll" name="roll_number" class="form-control" placeholder="e.g. 24CSE001" value="{{ form_data.get('roll_number', '') if form_data else '' }}" required style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="st_programme">Programme</label>
+            <input type="text" id="st_programme" name="programme" class="form-control" placeholder="e.g. B.Tech CSE" value="{{ form_data.get('programme', '') if form_data else '' }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="st_semester">Semester</label>
+            <input type="number" id="st_semester" name="semester" class="form-control" placeholder="4" min="1" max="12" value="{{ form_data.get('semester', '') if form_data else '' }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="st_section">Section</label>
+            <input type="text" id="st_section" name="section" class="form-control" placeholder="A" value="{{ form_data.get('section', '') if form_data else '' }}" required style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="st_password">Password</label>
+            <input type="password" id="st_password" name="password" class="form-control" placeholder="Min. 8 characters" required minlength="8" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="st_confirm_password">Confirm Password</label>
+            <input type="password" id="st_confirm_password" name="confirm_password" class="form-control" placeholder="Repeat password" required minlength="8" autocomplete="new-password">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 14px; padding: 12px;">
+          <span>Complete Student Registration</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- TEACHER / FACULTY REGISTRATION FORM -->
+    <div id="teacherSignupForm" style="display: {% if default_role == 'teacher' %}block{% else %}none{% endif %};">
+      <form method="POST" action="{{ url_for('auth.signup_teacher') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label" for="tc_full_name">Full Name with Title</label>
+          <input type="text" id="tc_full_name" name="full_name" class="form-control" placeholder="e.g. Dr. Aarav Sharma" value="{{ form_data.get('full_name', '') if form_data else '' }}" required autocomplete="name">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="tc_email">Faculty Email</label>
+            <input type="email" id="tc_email" name="email" class="form-control" placeholder="name@university.edu" value="{{ form_data.get('email', '') if form_data else '' }}" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tc_faculty_id">Faculty ID</label>
+            <input type="text" id="tc_faculty_id" name="faculty_id" class="form-control" placeholder="e.g. FAC-CSE-01" value="{{ form_data.get('faculty_id', '') if form_data else '' }}" required style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="tc_dept">Academic Department</label>
+          <input type="text" id="tc_dept" name="department" class="form-control" placeholder="e.g. Computer Science & Engineering" value="{{ form_data.get('department', '') if form_data else '' }}" required>
+        </div>
+
+        <div class="form-group" style="background: rgba(166, 109, 87, 0.06); padding: 16px; border-radius: var(--radius-md); border: 1px dashed var(--latte-beige);">
+          <label class="form-label" for="tc_key" style="color: var(--muted-terracotta);">Faculty Verification Passkey</label>
+          <input type="text" id="tc_key" name="verification_key" class="form-control" placeholder="Enter department verification key (Demo: FACULTY2026)" value="{{ form_data.get('verification_key', '') if form_data else '' }}" required>
+          <div class="form-hint">Prevents unauthorized student elevation. Default demonstration key: <strong>FACULTY2026</strong></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="tc_password">Password</label>
+            <input type="password" id="tc_password" name="password" class="form-control" placeholder="Min. 8 characters" required minlength="8" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tc_confirm_password">Confirm Password</label>
+            <input type="password" id="tc_confirm_password" name="confirm_password" class="form-control" placeholder="Repeat password" required minlength="8" autocomplete="new-password">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 14px; padding: 12px;">
+          <span>Verify &amp; Create Faculty Account</span>
+        </button>
+      </form>
+    </div>
+
+    <div style="margin-top: 24px; text-align: center; font-size: 0.9rem;">
+      <span style="color: var(--text-secondary);">Already have an account?</span>
+      <a href="{{ url_for('auth.login') }}" style="font-weight: 600; margin-left: 4px;">Sign in here</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchRoleTab(role) {
+  const stForm = document.getElementById('studentSignupForm');
+  const tcForm = document.getElementById('teacherSignupForm');
+  const stBtn = document.getElementById('tabStudentBtn');
+  const tcBtn = document.getElementById('tabTeacherBtn');
+
+  stForm.classList.remove('tab-fade-in');
+  tcForm.classList.remove('tab-fade-in');
+
+  if (role === 'teacher') {
+    stForm.style.display = 'none';
+    tcForm.style.display = 'block';
+    tcForm.classList.add('tab-fade-in');
+    tcBtn.className = 'btn btn-primary';
+    stBtn.className = 'btn btn-outline';
+  } else {
+    tcForm.style.display = 'none';
+    stForm.style.display = 'block';
+    stForm.classList.add('tab-fade-in');
+    stBtn.className = 'btn btn-primary';
+    tcBtn.className = 'btn btn-outline';
+  }
+}
+</script>
+{% endblock %}

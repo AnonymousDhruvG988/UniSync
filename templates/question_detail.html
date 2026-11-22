@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doubt.title }} | UniSync{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="margin: 20px auto 40px auto;">
+  <!-- Back Link & Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <a href="{{ url_for('classes.detail', class_id=offering.id) }}" class="btn btn-outline btn-sm">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+      <span>Back to {{ offering.course.code }}</span>
+    </a>
+
+    <!-- Status Changer Form -->
+    <form method="POST" action="{{ url_for('questions.update_status', doubt_id=doubt.id) }}" style="display: flex; align-items: center; gap: 8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Status:</span>
+      <select name="status" class="form-control" style="padding: 6px 12px; font-size: 0.85rem; width: auto;" onchange="this.form.submit()">
+        {% if is_teacher %}
+          <option value="new" {% if doubt.status == 'new' %}selected{% endif %}>New</option>
+          <option value="viewed" {% if doubt.status == 'viewed' %}selected{% endif %}>Viewed</option>
+          <option value="answered" {% if doubt.status == 'answered' %}selected{% endif %}>Answered</option>
+          <option value="resolved" {% if doubt.status == 'resolved' %}selected{% endif %}>Resolved</option>
+        {% elif is_student %}
+          <option value="answered" {% if doubt.status != 'resolved' %}selected{% endif %}>Open</option>
+          <option value="resolved" {% if doubt.status == 'resolved' %}selected{% endif %}>Mark as Resolved</option>
+        {% endif %}
+      </select>
+    </form>
+  </div>
+
+  <!-- Primary Question Card -->
+  <div class="card" style="margin-bottom: 24px; padding: 28px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="badge {% if doubt.status == 'new' %}badge-error{% elif doubt.status == 'viewed' %}badge-warning{% elif doubt.status == 'answered' %}badge-success{% else %}badge-neutral{% endif %}">
+          {{ doubt.status.title() }}
+        </span>
+        <span class="class-code-badge">{{ offering.course.code }} (Sec {{ offering.section.name }})</span>
+        {% if doubt.session %}
+          <span class="badge badge-neutral">In-Class Check-in</span>
+        {% endif %}
+      </div>
+      <span style="font-size: 0.825rem; color: var(--text-muted);">{{ doubt.created_at|format_datetime }}</span>
+    </div>
+
+    <h2 style="font-size: 1.6rem; margin-bottom: 16px;">{{ doubt.title }}</h2>
+
+    <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem;">
+      <div>
+        <span style="color: var(--text-muted);">Student Author:</span>
+        <strong>{{ doubt.student.user.full_name }}</strong> (<span class="roll-code">{{ doubt.student.roll_number }}</span>)
+      </div>
+      <div>
+        <span style="color: var(--text-muted);">Instructor:</span>
+        <strong>{{ offering.teacher.user.full_name }}</strong>
+      </div>
+    </div>
+
+    <p style="font-size: 1rem; color: var(--text-primary); line-height: 1.6; white-space: pre-line;">
+      {{ doubt.explanation }}
+    </p>
+  </div>
+
+  <!-- Discussion Thread / Replies -->
+  <div style="margin-bottom: 32px;">
+    <h3 style="margin-bottom: 16px;">Discussion Thread ({{ doubt.replies|length }})</h3>
+
+    {% if doubt.replies %}
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        {% for r in doubt.replies %}
+          <div class="card" style="padding: 20px; {% if r.author.is_teacher %}border-left: 4px solid var(--primary-button); background: rgba(139, 85, 68, 0.03);{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="user-avatar" style="{% if r.author.is_teacher %}background: var(--primary-button);{% endif %}">
+                  {{ r.author.full_name[:1] }}
+                </div>
+                <div>
+                  <strong>{{ r.author.full_name }}</strong>
+                  {% if r.author.is_teacher %}
+                    <span class="badge badge-primary" style="margin-left: 6px;">Course Instructor</span>
+                  {% else %}
+                    <span class="badge badge-neutral" style="margin-left: 6px;">Student</span>
+                  {% endif %}
+                </div>
+              </div>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">{{ r.created_at|format_datetime }}</span>
+            </div>
+            <p style="font-size: 0.95rem; color: var(--text-primary); line-height: 1.5; white-space: pre-line; margin-top: 6px;">
+              {{ r.message }}
+            </p>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card" style="text-align: center; padding: 32px; color: var(--text-muted);">
+        No replies posted yet. {% if is_teacher %}Post an instructor response below to clarify this concept for the student.{% else %}Awaiting faculty response.{% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Reply Composer Box -->
+  <div class="card" style="padding: 24px;">
+    <h4 style="margin-bottom: 12px;">
+      {% if is_teacher %}Post Authoritative Instructor Reply{% else %}Add Clarification or Follow-up{% endif %}
+    </h4>
+    <form method="POST" action="{{ url_for('questions.reply', doubt_id=doubt.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <textarea name="message" class="form-control" rows="4" placeholder="Write your reply here..." required></textarea>
+        {% if is_teacher %}
+          <div class="form-hint">Posting a faculty reply automatically marks this question as Answered and sends an in-app notification to the student.</div>
+        {% endif %}
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary">
+          <span>Send Reply</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

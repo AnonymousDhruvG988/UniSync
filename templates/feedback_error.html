@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | UniSync{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="margin: 40px auto; text-align: center;">
+  <div class="card" style="padding: 48px 32px;">
+    <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--error-bg); color: var(--error); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+      <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+    </div>
+
+    <h2 style="margin-bottom: 8px;">{{ heading }}</h2>
+    <p style="margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; line-height: 1.5;">
+      {{ message }}
+    </p>
+
+    {% if join_code %}
+      <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 14px; max-width: 360px; margin: 0 auto 24px auto;">
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Class Join Code</span>
+        <div style="font-size: 1.25rem; font-weight: 800; font-family: monospace; color: var(--primary-button);">
+          {{ join_code }}
+        </div>
+      </div>
+    {% endif %}
+
+    <div style="display: flex; justify-content: center; gap: 12px;">
+      <a href="{{ back_url or url_for('student.dashboard') }}" class="btn btn-primary">
+        <span>Go to Workspace</span>
+      </a>
+      <a href="{{ url_for('auth.index') }}" class="btn btn-secondary">
+        <span>UniSync Home</span>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

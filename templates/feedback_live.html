@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}In-Class Feedback Session | 45-Second Window | UniSync{% endblock %}
+
+{% block content %}
+<div id="qrLiveSession"
+     class="live-session-container"
+     data-session-token="{{ feedback_session.session_token }}"
+     data-remaining-seconds="{{ remaining_seconds }}"
+     data-results-url="{{ url_for('feedback.results', session_token=feedback_session.session_token) }}">
+
+  <!-- Header Info -->
+  <div style="margin-bottom: 24px;">
+    <span class="badge badge-primary">{{ offering.course.code }} &bull; Section {{ offering.section.name }}</span>
+    <h2 style="margin-top: 8px;">{{ offering.course.name }}</h2>
+    <p>Instructor: {{ offering.teacher.user.full_name }} &bull; 45-Second Classroom Check-in</p>
+  </div>
+
+  <!-- Big Animated 45-Second Countdown Card -->
+  <div class="timer-hero-card">
+    <div class="live-pulse-badge">
+      <span class="pulse-dot"></span>
+      <span>Session Live &bull; Submissions Received: <strong id="liveResponseCount">{{ responses_count }}</strong> / {{ total_enrolled }}</span>
+    </div>
+
+    <!-- Apple-style circular timer -->
+    <div class="timer-circle-wrap">
+      <svg class="timer-svg" viewBox="0 0 220 220">
+        <circle class="timer-bg-circle" cx="110" cy="110" r="100"></circle>
+        <circle id="timerProgressCircle" class="timer-progress-circle" cx="110" cy="110" r="100"></circle>
+      </svg>
+      <div class="timer-display">
+        <div id="timerNumberDisplay" class="timer-number">{{ remaining_seconds }}</div>
+        <div class="timer-unit">Seconds</div>
+      </div>
+    </div>
+
+    <!-- Dynamic Scannable QR Code -->
+    <div class="qr-code-box">
+      <img src="{{ url_for('feedback.generate_qr', session_token=feedback_session.session_token) }}" alt="UniSync Dynamic QR Code" class="qr-code-img">
+    </div>
+
+    <p style="font-size: 0.95rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">
+      Students: Scan this QR with your phone camera to submit feedback
+    </p>
+    <p style="font-size: 0.8rem; color: var(--text-muted); max-width: 500px; margin: 0 auto 16px auto;">
+      Requires an active university student account enrolled in Section {{ offering.section.name }}. The session will strictly terminate when the timer reaches zero.
+    </p>
+
+    <!-- Desktop Test Shortcut Link for Evaluators -->
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--bg-subtle); padding: 8px 16px; border-radius: var(--radius-pill); font-size: 0.85rem;">
+      <span style="color: var(--text-muted);">Direct Evaluation Link:</span>
+      <a href="{{ scan_url }}" target="_blank" rel="noopener noreferrer" style="font-weight: 700; color: var(--primary-button);">
+        Open Student Form in New Tab &rarr;
+      </a>
+    </div>
+
+    <div id="sessionStatusNotice"></div>
+  </div>
+
+  <div style="display: flex; justify-content: center; gap: 12px;">
+    <a href="{{ url_for('feedback.results', session_token=feedback_session.session_token) }}" class="btn btn-outline btn-sm">
+      <span>Early Close &amp; View Analytics</span>
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/qr_timer.js') }}"></script>
+{% endblock %}

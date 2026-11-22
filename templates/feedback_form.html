@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Classroom Feedback | {{ offering.course.name }} | UniSync{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="margin: 20px auto 40px auto;">
+  <!-- Class Context Header Card -->
+  <div class="card" style="margin-bottom: 24px; border-left: 4px solid var(--primary-button);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span class="class-code-badge">{{ offering.course.code }}</span>
+          <span class="badge badge-neutral">Section {{ offering.section.name }}</span>
+        </div>
+        <h2 style="font-size: 1.5rem;">{{ offering.course.name }}</h2>
+        <p style="font-size: 0.875rem; margin-top: 2px;">
+          Instructor: <strong>{{ offering.teacher.user.full_name }}</strong> &bull; {{ offering.teacher.department }}
+        </p>
+      </div>
+
+      <!-- Real-Time Remaining Window Alert -->
+      <div style="text-align: right;">
+        <span class="live-pulse-badge">
+          <span class="pulse-dot"></span>
+          <span id="studentTimeRemaining" data-seconds="{{ remaining_seconds }}">{{ remaining_seconds }}s remaining</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authenticated Student Identification Notice -->
+  <div style="background: rgba(166, 109, 87, 0.08); border: 1px solid var(--latte-beige); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 24px;">
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+      <svg class="icon-md" style="color: var(--muted-terracotta); flex-shrink: 0; margin-top: 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <div>
+        <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary);">
+          Authenticated Student Check-in: {{ student.user.full_name }} (<span class="roll-code">{{ student.roll_number }}</span>)
+        </div>
+        <p style="font-size: 0.825rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">
+          Your name and roll number will be visible to your assigned teacher for this classroom feedback session. They will not be displayed to other students.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Submission Form -->
+  <div class="card" style="padding: 32px;">
+    <form id="studentFeedbackForm" method="POST" action="{{ url_for('feedback.submit_feedback', session_token=feedback_session.session_token) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Question 1: Understanding -->
+      <div class="form-group" style="margin-bottom: 28px;">
+        <label class="form-label" style="font-size: 1.05rem; font-weight: 700;">
+          1. How well did you understand today's class?
+        </label>
+        <div class="choice-cards">
+          <label class="choice-card" for="opt_understood">
+            <input type="radio" id="opt_understood" name="understanding" value="understood" class="choice-radio" required>
+            <div>
+              <div style="font-weight: 600; color: var(--text-primary);">I understood the topic.</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">Clear grasp of core principles and problem-solving steps.</div>
+            </div>
+          </label>
+
+          <label class="choice-card" for="opt_partially">
+            <input type="radio" id="opt_partially" name="understanding" value="partially" class="choice-radio">
+            <div>
+              <div style="font-weight: 600; color: var(--text-primary);">I partially understood.</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">Understood general theory but need clarification on details.</div>
+            </div>
+          </label>
+
+          <label class="choice-card" for="opt_needs_help">
+            <input type="radio" id="opt_needs_help" name="understanding" value="needs_help" class="choice-radio">
+            <div>
+              <div style="font-weight: 600; color: var(--text-primary);">I need further explanation.</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">Core concepts require re-explanation and guided walk-through.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Question 2: Satisfaction -->
+      <div class="form-group" style="margin-bottom: 28px;">
+        <label class="form-label" style="font-size: 1.05rem; font-weight: 700;">
+          2. How satisfied are you with today's learning experience?
+        </label>
+        <p style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 8px;">
+          Select a rating from 1 (Low satisfaction) to 5 (High satisfaction)
+        </p>
+
+        <input type="hidden" id="satisfactionInput" name="satisfaction" value="" required>
+
+        <div class="rating-options">
+          <button type="button" class="rating-btn" data-value="1">1</button>
+          <button type="button" class="rating-btn" data-value="2">2</button>
+          <button type="button" class="rating-btn" data-value="3">3</button>
+          <button type="button" class="rating-btn" data-value="4">4</button>
+          <button type="button" class="rating-btn" data-value="5">5</button>
+        </div>
+      </div>
+
+      <!-- Question 3: Optional Concept Explanation Request -->
+      <div class="form-group" style="margin-bottom: 28px;">
+        <label class="form-label" for="concept_feedback" style="font-size: 1.05rem; font-weight: 700;">
+          3. Is there any concept you would like the teacher to explain again?
+          <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">(Optional)</span>
+        </label>
+        <textarea id="concept_feedback" name="concept_feedback" class="form-control" rows="3" placeholder="e.g. Please revisit base condition logic in recursion, or provide another matrix traversal example..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; padding: 14px;">
+        <span>Submit Classroom Feedback</span>
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/feedback.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Academic Profile | UniSync{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="margin: 30px auto;">
+  <div class="card" style="padding: 36px 32px;">
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light);">
+      <div class="user-avatar" style="width: 56px; height: 56px; font-size: 1.5rem; background: var(--primary-button);">
+        {{ user.full_name[:1] }}
+      </div>
+      <div>
+        <h2>{{ user.full_name }}</h2>
+        <p style="margin-top: 2px;">
+          {{ user.role.title() }} &bull; {{ user.email }}
+        </p>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <label class="form-label" style="color: var(--text-muted);">Account Role</label>
+        <div style="font-weight: 600; font-size: 1rem;">{{ user.role.title() }}</div>
+      </div>
+
+      <div>
+        <label class="form-label" style="color: var(--text-muted);">University Email</label>
+        <div style="font-weight: 600; font-size: 1rem;">{{ user.email }}</div>
+      </div>
+
+      {% if role == 'student' %}
+        <div>
+          <label class="form-label" style="color: var(--text-muted);">Roll Number</label>
+          <div><span class="roll-code">{{ student.roll_number }}</span></div>
+        </div>
+        <div>
+          <label class="form-label" style="color: var(--text-muted);">Programme</label>
+          <div style="font-weight: 600; font-size: 1rem;">{{ student.programme }}</div>
+        </div>
+        <div>
+          <label class="form-label" style="color: var(--text-muted);">Current Semester</label>
+          <div style="font-weight: 600; font-size: 1rem;">Semester {{ student.semester }}</div>
+        </div>
+        <div>
+          <label class="form-label" style="color: var(--text-muted);">Assigned Section</label>
+          <div style="font-weight: 600; font-size: 1rem;">Section {{ student.section }}</div>
+        </div>
+      {% elif role == 'teacher' %}
+        <div>
+          <label class="form-label" style="color: var(--text-muted);">Faculty ID</label>
+          <div><span class="roll-code">{{ teacher.faculty_id }}</span></div>
+        </div>
+        <div>
+          <label class="form-label" style="color: var(--text-muted);">Academic Department</label>
+          <div style="font-weight: 600; font-size: 1rem;">{{ teacher.department }}</div>
+        </div>
+      {% endif %}
+
+      <div>
+        <label class="form-label" style="color: var(--text-muted);">Account Created</label>
+        <div style="font-weight: 600; font-size: 1rem;">{{ user.created_at|format_datetime }}</div>
+      </div>
+      <div>
+        <label class="form-label" style="color: var(--text-muted);">Account Status</label>
+        <div><span class="badge badge-success">Active &amp; Verified</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end;">
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm">
+        <span>Sign Out</span>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Results | {{ offering.course.name }} ({{ offering.section.name }}) | UniSync{% endblock %}
+
+{% block content %}
+<!-- Results Header Card -->
+<div class="results-header-card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        <span class="badge badge-neutral">Feedback Session Concluded</span>
+        <span class="class-code-badge">{{ offering.course.code }}</span>
+        <span class="badge badge-primary">Section {{ offering.section.name }}</span>
+      </div>
+      <h2>{{ offering.course.name }}</h2>
+      <p style="margin-top: 4px;">
+        Session conducted on {{ feedback_session.started_at|format_datetime }} &bull; Strict 45-Second Window Cutoff
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <!-- Export CSV Button -->
+      <a href="{{ url_for('feedback.export_csv', session_token=feedback_session.session_token) }}" class="btn btn-primary btn-sm">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>Export CSV Report</span>
+      </a>
+      <a href="{{ url_for('classes.detail', class_id=offering.id) }}" class="btn btn-outline btn-sm">
+        <span>Back to Class</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Real Statistics Metric Cards -->
+  <div class="stats-grid" style="margin-bottom: 24px;">
+    <div class="stat-card">
+      <span class="stat-label">Eligible Class Size</span>
+      <span class="stat-value">{{ total_enrolled }}</span>
+      <span class="stat-desc">Enrolled in Section {{ offering.section.name }}</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Verified Responses</span>
+      <span class="stat-value" style="color: var(--primary-button);">{{ total_responses }}</span>
+      <span class="stat-desc">Submitted before 45s cutoff</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Response Completion</span>
+      <span class="stat-value" style="color: var(--success);">{{ completion_pct }}%</span>
+      <span class="stat-desc">{{ total_responses }} of {{ total_enrolled }} participated</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Average Satisfaction</span>
+      <span class="stat-value" style="color: var(--muted-terracotta);">{{ avg_satisfaction }}/5</span>
+      <span class="stat-desc">Score across participants</span>
+    </div>
+  </div>
+
+  <!-- Understanding Distribution Meter -->
+  <div style="margin-top: 10px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h4 style="font-size: 0.95rem;">Classroom Understanding Distribution</h4>
+      <span style="font-size: 0.8rem; color: var(--text-muted);">{{ total_responses }} Student Responses</span>
+    </div>
+
+    <div class="distribution-meter">
+      <div class="dist-bar-understood" style="width: {{ breakdown.percentages.understood }}%;" title="Understood: {{ breakdown.counts.understood }} ({{ breakdown.percentages.understood }}%)"></div>
+      <div class="dist-bar-partially" style="width: {{ breakdown.percentages.partially }}%;" title="Partially: {{ breakdown.counts.partially }} ({{ breakdown.percentages.partially }}%)"></div>
+      <div class="dist-bar-needshelp" style="width: {{ breakdown.percentages.needs_help }}%;" title="Needs Help: {{ breakdown.counts.needs_help }} ({{ breakdown.percentages.needs_help }}%)"></div>
+    </div>
+
+    <div class="dist-legend">
+      <div class="dist-legend-item">
+        <span class="legend-color-dot" style="background: var(--success);"></span>
+        <span>Understood: <strong>{{ breakdown.counts.understood }}</strong> ({{ breakdown.percentages.understood }}%)</span>
+      </div>
+      <div class="dist-legend-item">
+        <span class="legend-color-dot" style="background: var(--warning);"></span>
+        <span>Partially: <strong>{{ breakdown.counts.partially }}</strong> ({{ breakdown.percentages.partially }}%)</span>
+      </div>
+      <div class="dist-legend-item">
+        <span class="legend-color-dot" style="background: var(--error);"></span>
+        <span>Needs Help: <strong>{{ breakdown.counts.needs_help }}</strong> ({{ breakdown.percentages.needs_help }}%)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Weekly Satisfaction Bar Graph Trend for this Course -->
+{% if weekly_analytics and weekly_analytics.has_data %}
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span class="badge badge-primary">Course Trends</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">{{ offering.course.code }} &bull; Section {{ offering.section.name }}</span>
+        </div>
+        <h3>Weekly Satisfaction &amp; Comprehension Bar Graph</h3>
+        <p style="font-size: 0.875rem;">Tracking satisfactory scores across weekly lecture check-ins</p>
+      </div>
+
+      <div class="chart-stats-summary">
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Course Average</span>
+          <span class="chart-stat-badge-val">{{ weekly_analytics.summary.overall_avg }}/5.0</span>
+        </div>
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Evaluations</span>
+          <span class="chart-stat-badge-val" style="color: var(--success);">{{ weekly_analytics.summary.total_responses }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Bar Chart -->
+    <div class="weekly-bar-chart">
+      <div class="chart-y-axis">
+        <span>5.0</span>
+        <span>4.0</span>
+        <span>3.0</span>
+        <span>2.0</span>
+        <span>1.0</span>
+        <span>0.0</span>
+      </div>
+
+      <div class="chart-plot-area">
+        <div class="chart-grid-line" style="top: 0%;"></div>
+        <div class="chart-grid-line" style="top: 20%;"></div>
+        <div class="chart-grid-line" style="top: 40%;"></div>
+        <div class="chart-grid-line" style="top: 60%;"></div>
+        <div class="chart-grid-line" style="top: 80%;"></div>
+        <div class="chart-grid-line" style="bottom: 0%;"></div>
+
+        {% for bar in weekly_analytics.weekly_bars %}
+          <div class="chart-bar-col" title="{{ bar.date_label }}: {{ bar.avg_satisfaction }}/5.0 ({{ bar.response_count }} students)">
+            <span class="chart-bar-score">{{ bar.avg_satisfaction }}</span>
+            <div class="chart-bar-pillar" style="height: {{ bar.height_pct }}%; {% if bar.session_token == feedback_session.session_token %}border: 2px solid var(--vanilla-white); box-shadow: 0 0 0 2px var(--primary-button);{% endif %}"></div>
+            <span class="chart-x-label">{{ bar.week_label }} ({{ bar.date_label }})</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- IDENTIFIED STUDENT SUBMISSIONS TABLE -->
+<div class="table-card">
+  <div class="table-toolbar">
+    <div>
+      <h3>Verified Student Submissions ({{ responses|length }})</h3>
+      <p style="font-size: 0.825rem; color: var(--text-muted);">
+        Only students who submitted during the active 45-second window are recorded. Visible exclusively to assigned faculty.
+      </p>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <div class="table-search-box">
+        <svg class="icon-sm table-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="studentTableSearch" class="table-search-input" placeholder="Search by roll number or name...">
+      </div>
+
+      <div class="filter-pills-row">
+        <button type="button" class="filter-pill active" data-filter="all">All</button>
+        <button type="button" class="filter-pill" data-filter="understood">Understood</button>
+        <button type="button" class="filter-pill" data-filter="partially">Partially</button>
+        <button type="button" class="filter-pill" data-filter="needs_help">Needs Help</button>
+      </div>
+    </div>
+  </div>
+
+  {% if responses %}
+    <div style="overflow-x: auto;">
+      <table class="custom-table" id="submissionTable">
+        <thead>
+          <tr>
+            <th style="width: 60px;">#</th>
+            <th>Student Name</th>
+            <th>Roll Number</th>
+            <th>Submission Time</th>
+            <th>Understanding Selection</th>
+            <th>Satisfaction Rating</th>
+            <th>Concept Feedback / Questions</th>
+          </tr>
+        </thead>
+        <tbody id="submissionTableBody">
+          {% for r in responses %}
+            <tr data-roll="{{ r.student_roll_number }}" data-name="{{ r.student_name }}" data-understanding="{{ r.understanding }}">
+              <td><strong>{{ loop.index }}</strong></td>
+              <td>
+                <div style="font-weight: 600; color: var(--text-primary);">{{ r.student_name }}</div>
+              </td>
+              <td>
+                <span class="roll-code">{{ r.student_roll_number }}</span>
+              </td>
+              <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                {{ r.submitted_at|format_time }}
+              </td>
+              <td>
+                <span class="badge {% if r.understanding == 'understood' %}badge-success{% elif r.understanding == 'partially' %}badge-warning{% else %}badge-error{% endif %}">
+                  {{ r.understanding.replace('_', ' ').title() }}
+                </span>
+              </td>
+              <td>
+                <span style="font-weight: 700; color: var(--muted-terracotta);">{{ r.satisfaction }}/5</span>
+              </td>
+              <td style="max-width: 320px; font-size: 0.875rem; color: var(--text-secondary);">
+                {% if r.concept_feedback %}
+                  "{{ r.concept_feedback }}"
+                {% else %}
+                  <span style="color: var(--text-muted); font-style: italic;">None provided</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+      No student responses were recorded within the 45-second window for this session.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/questions.js') }}"></script>
+{% endblock %}

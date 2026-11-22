@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}My Classes | UniSync{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px;">
+  <div>
+    <h2>Enrolled University Classes</h2>
+    <p>All academic course offerings currently registered under roll number {{ student.roll_number }}</p>
+  </div>
+  <button type="button" class="btn btn-primary" onclick="openModal('joinClassModal')">
+    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    <span>Join Another Class</span>
+  </button>
+</div>
+
+{% if classes %}
+  <div class="classes-grid">
+    {% for offering in classes %}
+      <div class="class-card">
+        <div>
+          <div class="class-card-header">
+            <span class="class-code-badge">{{ offering.course.code }}</span>
+            <span class="badge badge-neutral">Sec {{ offering.section.name }}</span>
+          </div>
+          <h4 class="class-title">{{ offering.course.name }}</h4>
+          <div class="class-meta">
+            Instructor: <strong>{{ offering.teacher.user.full_name }}</strong> &bull; {{ offering.teacher.department }}
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4;">
+            {{ offering.course.description or 'Course syllabus active for current semester.' }}
+          </p>
+
+          <div class="class-stats-row">
+            <div class="class-stat-item">
+              <div class="class-stat-item-label">Credits</div>
+              <div class="class-stat-item-val">{{ offering.course.credits }}</div>
+            </div>
+            <div class="class-stat-item">
+              <div class="class-stat-item-label">Semester</div>
+              <div class="class-stat-item-val">{{ offering.semester }}</div>
+            </div>
+            <div class="class-stat-item">
+              <div class="class-stat-item-label">Join Code</div>
+              <div class="class-stat-item-val" style="font-size: 0.9rem; font-family: monospace;">{{ offering.join_code }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 14px;">
+          <a href="{{ url_for('classes.detail', class_id=offering.id) }}" class="btn btn-primary btn-sm" style="flex: 1;">
+            <span>Enter Classroom Workspace</span>
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" style="text-align: center; padding: 48px 24px;">
+    <h4>No Classes Enrolled</h4>
+    <p style="margin-top: 6px; margin-bottom: 20px;">Join your semester courses using the class join code provided by your faculty.</p>
+    <button type="button" class="btn btn-primary" onclick="openModal('joinClassModal')">Join Class</button>
+  </div>
+{% endif %}
+
+<!-- Modal: Join Class -->
+<div id="joinClassModal" class="modal-backdrop">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h4>Join Class Offering</h4>
+      <button type="button" onclick="closeModal('joinClassModal')" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('classes.join') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; margin-bottom: 16px;">
+          Enter the unique 6-character class code provided by your faculty (e.g. <code>PROG-A</code>, <code>DATA-A</code>, or <code>PHYS-A</code>).
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="join_code">Class Join Code</label>
+          <input type="text" id="join_code" name="join_code" class="form-control" placeholder="e.g. PROG-A" required style="letter-spacing: 0.1em; font-weight: 700; text-transform: uppercase;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('joinClassModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Join Class</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

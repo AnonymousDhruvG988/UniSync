@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard | UniSync{% endblock %}
+
+{% block content %}
+<!-- Faculty Header Information Card -->
+<div class="card" style="margin-bottom: 28px; background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-subtle) 100%);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+        <span class="badge badge-primary">Faculty Dashboard</span>
+        <span class="roll-code">{{ teacher.faculty_id }}</span>
+      </div>
+      <h2>{{ current_user.full_name }}</h2>
+      <p style="margin-top: 4px;">
+        {{ teacher.department }} &bull; Academic Year 2026&ndash;2027
+      </p>
+    </div>
+
+    <!-- Quick Action: Create New Class Offering -->
+    <div>
+      <button type="button" class="btn btn-primary" onclick="openModal('createClassModal')">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Add Class Offering</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Active Feedback Sessions Pulse Card (if currently conducting a 45s session) -->
+{% if active_sessions %}
+  {% for sess in active_sessions %}
+    <div class="card" style="margin-bottom: 28px; border: 2px solid var(--muted-terracotta); background: rgba(166, 109, 87, 0.08); padding: 20px 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--muted-terracotta); color: white; display: flex; align-items: center; justify-content: center;">
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="live-pulse-badge">
+                <span class="pulse-dot"></span>
+                Feedback Session in Progress
+              </span>
+              <span class="roll-code">{{ sess.remaining_seconds }}s remaining</span>
+            </div>
+            <h3 style="margin-top: 4px;">{{ sess.class_offering.course.name }} ({{ sess.class_offering.section.name }})</h3>
+            <p style="font-size: 0.85rem; margin-top: 2px;">
+              {{ sess.responses|length }} students have submitted within the active 45-second window.
+            </p>
+          </div>
+        </div>
+
+        <a href="{{ url_for('feedback.live_session', session_token=sess.session_token) }}" class="btn btn-primary btn-lg">
+          <span>Monitor Live Countdown</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Key Faculty Metrics Grid -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">Assigned Classes</span>
+    <span class="stat-value">{{ total_classes }}</span>
+    <span class="stat-desc">Course-section offerings</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Enrolled Students</span>
+    <span class="stat-value">{{ total_enrollments }}</span>
+    <span class="stat-desc">Across all sections</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Total Submissions</span>
+    <span class="stat-value" style="color: var(--success);">{{ total_responses }}</span>
+    <span class="stat-desc">45-second QR feedback</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Unanswered Questions</span>
+    <span class="stat-value" style="color: {% if unanswered_doubts > 0 %}var(--warning){% else %}var(--text-primary){% endif %};">
+      {{ unanswered_doubts }}
+    </span>
+    <span class="stat-desc">Pending student questions</span>
+  </div>
+</div>
+
+<!-- Weekly Student Satisfaction & Comprehension Bar Graph Card -->
+{% if weekly_analytics and weekly_analytics.has_data %}
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span class="badge badge-primary">Weekly Analytics</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Classroom Comprehension Trends</span>
+        </div>
+        <h3>Weekly Student Satisfaction &amp; Feedback Scores</h3>
+        <p style="font-size: 0.875rem;">Average satisfaction score (scale 1.0 to 5.0) and comprehension progression across lecture sessions</p>
+      </div>
+
+      <div class="chart-stats-summary">
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Term Average</span>
+          <span class="chart-stat-badge-val">{{ weekly_analytics.summary.overall_avg }}/5.0</span>
+        </div>
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Total Evaluations</span>
+          <span class="chart-stat-badge-val" style="color: var(--success);">{{ weekly_analytics.summary.total_responses }}</span>
+        </div>
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Best Session</span>
+          <span class="chart-stat-badge-val" style="font-size: 1rem; color: var(--muted-terracotta);">{{ weekly_analytics.summary.best_week }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- The Visual Bar Chart -->
+    <div class="weekly-bar-chart">
+      <!-- Y-Axis Scale Markers -->
+      <div class="chart-y-axis">
+        <span>5.0</span>
+        <span>4.0</span>
+        <span>3.0</span>
+        <span>2.0</span>
+        <span>1.0</span>
+        <span>0.0</span>
+      </div>
+
+      <!-- Plot Area -->
+      <div class="chart-plot-area">
+        <!-- Horizontal Grid Lines -->
+        <div class="chart-grid-line" style="top: 0%;"></div>
+        <div class="chart-grid-line" style="top: 20%;"></div>
+        <div class="chart-grid-line" style="top: 40%;"></div>
+        <div class="chart-grid-line" style="top: 60%;"></div>
+        <div class="chart-grid-line" style="top: 80%;"></div>
+        <div class="chart-grid-line" style="bottom: 0%;"></div>
+
+        <!-- Weekly Bars -->
+        {% for bar in weekly_analytics.weekly_bars %}
+          <div class="chart-bar-col" title="{{ bar.class_code }} (Sec {{ bar.section_name }}) - {{ bar.date_label }}: {{ bar.avg_satisfaction }}/5 ({{ bar.response_count }} students)">
+            <span class="chart-bar-score">{{ bar.avg_satisfaction }}</span>
+            <div class="chart-bar-pillar" style="height: {{ bar.height_pct }}%;"></div>
+            <span class="chart-x-label">{{ bar.week_label }} ({{ bar.date_label }})</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Weekly Understanding Distribution Breakdown -->
+    <div class="weekly-understanding-grid">
+      {% for bar in weekly_analytics.weekly_bars %}
+        <div class="weekly-und-card">
+          <div class="weekly-und-title">
+            <span>{{ bar.week_label }} ({{ bar.date_label }})</span>
+            <span style="color: var(--primary-button);">{{ bar.avg_satisfaction }}/5</span>
+          </div>
+          <div class="weekly-und-progress">
+            <div style="background: var(--success); width: {{ bar.und_pcts.understood }}%;" title="Understood: {{ bar.und_pcts.understood }}%"></div>
+            <div style="background: var(--warning); width: {{ bar.und_pcts.partially }}%;" title="Partially: {{ bar.und_pcts.partially }}%"></div>
+            <div style="background: var(--error); width: {{ bar.und_pcts.needs_help }}%;" title="Needs Help: {{ bar.und_pcts.needs_help }}%"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+            <span>{{ bar.response_count }} responses</span>
+            <span style="color: var(--success); font-weight: 600;">{{ bar.und_pcts.understood }}% Understood</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+<!-- My Assigned Classes Section (Separate card for every course-section) -->
+<div style="margin-bottom: 40px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h3>My Teaching Assignments</h3>
+      <p style="font-size: 0.875rem;">Manage individual course-section offerings, start 45s QR sessions, and resolve student doubts</p>
+    </div>
+    <a href="{{ url_for('teacher.classes') }}" class="btn btn-outline btn-sm">Manage Classes</a>
+  </div>
+
+  {% if classes_data %}
+    <div class="classes-grid">
+      {% for item in classes_data %}
+        {% set offering = item.offering %}
+        <div class="class-card">
+          <div>
+            <div class="class-card-header">
+              <span class="class-code-badge">{{ offering.course.code }}</span>
+              <span class="badge badge-primary">Section {{ offering.section.name }}</span>
+            </div>
+            <h4 class="class-title">{{ offering.course.name }}</h4>
+            <div class="class-meta">
+              {{ offering.section.programme }} &bull; Semester {{ offering.semester }}
+            </div>
+
+            <div class="class-stats-row">
+              <div class="class-stat-item">
+                <div class="class-stat-item-label">Enrolled</div>
+                <div class="class-stat-item-val">{{ item.enrolled_count }}</div>
+              </div>
+              <div class="class-stat-item">
+                <div class="class-stat-item-label">Responses</div>
+                <div class="class-stat-item-val">{{ item.feedback_count }}</div>
+              </div>
+              <div class="class-stat-item">
+                <div class="class-stat-item-label">Pending Qs</div>
+                <div class="class-stat-item-val" style="color: {% if item.unanswered_count > 0 %}var(--warning){% else %}var(--text-primary){% endif %};">
+                  {{ item.unanswered_count }}
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+              <span>Join Code: <strong style="font-family: monospace; color: var(--text-primary); font-size: 0.95rem;">{{ offering.join_code }}</strong></span>
+              <span>Year: {{ offering.academic_year }}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+            <!-- Start 45s Feedback Session Button -->
+            <form method="POST" action="{{ url_for('feedback.start_session', class_id=offering.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Start 45s Feedback Session</span>
+              </button>
+            </form>
+
+            <a href="{{ url_for('classes.detail', class_id=offering.id) }}" class="btn btn-secondary btn-sm" style="width: 100%; text-align: center;">
+              <span>Classroom Workspace</span>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card" style="text-align: center; padding: 48px 24px;">
+      <h4>No Teaching Assignments Found</h4>
+      <p style="margin-top: 6px; margin-bottom: 20px;">Create your first course-section offering to generate a join code for students.</p>
+      <button type="button" class="btn btn-primary" onclick="openModal('createClassModal')">Create Class Offering</button>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Recent Student Questions in Assigned Classes -->
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h4>Recent Student Questions</h4>
+      <p style="font-size: 0.85rem;">Doubts submitted by students enrolled in your course sections</p>
+    </div>
+    <a href="{{ url_for('teacher.questions') }}" class="btn btn-outline btn-sm">All Questions</a>
+  </div>
+
+  {% if recent_doubts %}
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      {% for q in recent_doubts %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-card); flex-wrap: wrap; gap: 12px;">
+          <div style="flex: 1; min-width: 260px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="badge {% if q.status == 'new' %}badge-error{% elif q.status == 'viewed' %}badge-warning{% elif q.status == 'answered' %}badge-success{% else %}badge-neutral{% endif %}">
+                {{ q.status.title() }}
+              </span>
+              <span class="roll-code">{{ q.student.roll_number }}</span>
+              <span style="font-size: 0.85rem; font-weight: 600;">{{ q.student.user.full_name }}</span>
+            </div>
+            <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">
+              {{ q.title }}
+            </a>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+              {{ q.class_offering.course.name }} ({{ q.class_offering.section.name }}) &bull; {{ q.created_at|time_ago }}
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" class="btn btn-outline btn-sm">
+              <span>View &amp; Answer</span>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="font-size: 0.875rem; color: var(--text-muted); text-align: center; padding: 24px 0;">
+      No student doubts currently recorded in your classes.
+    </p>
+  {% endif %}
+</div>
+
+<!-- Modal: Create New Class Offering -->
+<div id="createClassModal" class="modal-backdrop">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h4>Create Course-Section Offering</h4>
+      <button type="button" onclick="closeModal('createClassModal')" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('classes.create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; margin-bottom: 16px;">
+          Configure a course-section assignment. UniSync will automatically generate an exclusive student join code.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="new_course_code">Course Code</label>
+            <input type="text" id="new_course_code" name="new_course_code" class="form-control" placeholder="e.g. CS301" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new_course_name">Course Title</label>
+            <input type="text" id="new_course_name" name="new_course_name" class="form-control" placeholder="e.g. Operating Systems" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="new_section_name">Section</label>
+            <input type="text" id="new_section_name" name="new_section_name" class="form-control" placeholder="e.g. CSE-A" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="semester">Semester</label>
+            <input type="number" id="semester" name="semester" class="form-control" placeholder="4" min="1" max="12" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="programme">Programme</label>
+          <input type="text" id="programme" name="programme" class="form-control" placeholder="e.g. B.Tech Computer Science" value="B.Tech Computer Science & Engineering" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="academic_year">Academic Year</label>
+          <input type="text" id="academic_year" name="academic_year" class="form-control" value="2026-2027" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('createClassModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Generate Class Offering</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}UniSync | A better way to learn. A better way to connect.{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+  <!-- French Cafe Pill Badge -->
+  <div class="hero-pill">
+    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+    <span>SDG 4 Quality Education &bull; 45-Second Verified In-Class Feedback</span>
+  </div>
+
+  <h1 class="hero-title">
+    A better way to learn.<br>
+    <span>A better way to connect.</span>
+  </h1>
+
+  <p class="hero-subtitle">
+    UniSync bridges university lecture halls and student understanding. Instant 45-second QR classroom check-ins combined with a dedicated doubt workspace for every course section.
+  </p>
+
+  <!-- Clear Role-Based Call to Actions -->
+  <div class="hero-actions">
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+        <polyline points="10 17 15 12 10 7"></polyline>
+        <line x1="15" y1="12" x2="3" y2="12"></line>
+      </svg>
+      <span>Sign In to UniSync</span>
+    </a>
+    <a href="{{ url_for('auth.signup') }}" class="btn btn-secondary btn-lg">
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="8.5" cy="7" r="4"></circle>
+        <line x1="20" y1="8" x2="20" y2="14"></line>
+        <line x1="23" y1="11" x2="17" y2="11"></line>
+      </svg>
+      <span>Create Academic Account</span>
+    </a>
+  </div>
+
+  <!-- Evaluator Demonstration Fast Access -->
+  <div class="card card-hoverable" style="max-width: 680px; margin: 0 auto 56px auto; padding: 18px 24px; border-left: 4px solid var(--muted-terracotta);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div style="text-align: left;">
+        <span style="font-size: 0.775rem; text-transform: uppercase; font-weight: 700; color: var(--muted-terracotta); letter-spacing: 0.05em;">Evaluation Quick Access</span>
+        <div style="font-size: 0.925rem; font-weight: 600; color: var(--text-primary); margin-top: 2px;">
+          One-Click Demo Account Sign-in
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('auth.demo_login', role='teacher') }}" class="btn btn-outline btn-sm">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          <span>Demo Teacher</span>
+        </a>
+        <a href="{{ url_for('auth.demo_login', role='student') }}" class="btn btn-outline btn-sm">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Demo Student</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Refined Editorial Visual Preview of Classroom Workspace -->
+  <div class="preview-wrapper">
+    <div class="preview-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 16px; margin-bottom: 24px;">
+        <div>
+          <span class="badge badge-primary">CS101 &bull; Section CSE-A</span>
+          <h3 style="margin-top: 6px;">Programming Fundamentals</h3>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Instructor</span>
+          <div style="font-size: 0.95rem; font-weight: 600;">Dr. Aarav Sharma</div>
+        </div>
+      </div>
+
+      <div class="stats-grid" style="margin-bottom: 24px;">
+        <div class="stat-card">
+          <span class="stat-label">Enrolled Students</span>
+          <span class="stat-value">48</span>
+          <span class="stat-desc">Section CSE-A Semester 4</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Latest Understanding</span>
+          <span class="stat-value" style="color: var(--success);">87.5%</span>
+          <span class="stat-desc">Topic: Recursion Depth</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Avg Satisfaction</span>
+          <span class="stat-value" style="color: var(--muted-terracotta);">4.6/5</span>
+          <span class="stat-desc">42 In-Class Responses</span>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--primary-button); color: white; display: flex; align-items: center; justify-content: center;">
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary);">Dynamic 45-Second Lecture Feedback</div>
+            <div style="font-size: 0.825rem; color: var(--text-secondary);">Real-time synchronized countdown with identified student verification table</div>
+          </div>
+        </div>
+        <span class="badge badge-success">Live Synchronized</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- How Feedback Works 3-Step Section -->
+<div style="padding: 60px 0 30px 0;">
+  <div style="text-align: center; max-width: 640px; margin: 0 auto 48px auto;">
+    <h2 style="margin-bottom: 12px;">Engineered for Authentic In-Class Feedback</h2>
+    <p>A closed 45-second window prevents link forwarding and guarantees real-time classroom feedback directly to the faculty member.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+    <!-- Step 1 -->
+    <div class="card">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(166, 109, 87, 0.15); color: var(--muted-terracotta); display: flex; align-items: center; justify-content: center; font-weight: 700; margin-bottom: 16px;">
+        01
+      </div>
+      <h3 style="font-size: 1.15rem; margin-bottom: 8px;">Faculty Initiates Session</h3>
+      <p style="font-size: 0.9rem;">
+        At the conclusion of a topic, the teacher starts a session. The backend issues a unique scannable QR code and activates the 45-second timer.
+      </p>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="card">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(166, 109, 87, 0.15); color: var(--muted-terracotta); display: flex; align-items: center; justify-content: center; font-weight: 700; margin-bottom: 16px;">
+        02
+      </div>
+      <h3 style="font-size: 1.15rem; margin-bottom: 8px;">Enrolled Students Check In</h3>
+      <p style="font-size: 0.9rem;">
+        Students scan with their mobile phone or device. Identity is strictly verified from their university account. They answer 3 quick questions.
+      </p>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="card">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(166, 109, 87, 0.15); color: var(--muted-terracotta); display: flex; align-items: center; justify-content: center; font-weight: 700; margin-bottom: 16px;">
+        03
+      </div>
+      <h3 style="font-size: 1.15rem; margin-bottom: 8px;">Instant Identified Results</h3>
+      <p style="font-size: 0.9rem;">
+        At second zero, the session automatically closes. The teacher's screen transitions to show response analytics and the verified student roster.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

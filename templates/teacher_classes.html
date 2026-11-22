@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Classes | UniSync{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px;">
+  <div>
+    <h2>Faculty Teaching Classes</h2>
+    <p>All course sections assigned to {{ teacher.user.full_name }} ({{ teacher.faculty_id }})</p>
+  </div>
+  <button type="button" class="btn btn-primary" onclick="openModal('createClassModal')">
+    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    <span>Create Class Offering</span>
+  </button>
+</div>
+
+{% if classes_data %}
+  <div class="classes-grid">
+    {% for item in classes_data %}
+      {% set offering = item.offering %}
+      <div class="class-card">
+        <div>
+          <div class="class-card-header">
+            <span class="class-code-badge">{{ offering.course.code }}</span>
+            <span class="badge badge-primary">Section {{ offering.section.name }}</span>
+          </div>
+          <h4 class="class-title">{{ offering.course.name }}</h4>
+          <div class="class-meta">
+            {{ offering.section.programme }} &bull; Semester {{ offering.semester }}
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4;">
+            {{ offering.course.description or 'Active university course section.' }}
+          </p>
+
+          <div class="class-stats-row">
+            <div class="class-stat-item">
+              <div class="class-stat-item-label">Enrolled</div>
+              <div class="class-stat-item-val">{{ item.enrolled_count }}</div>
+            </div>
+            <div class="class-stat-item">
+              <div class="class-stat-item-label">Feedbacks</div>
+              <div class="class-stat-item-val">{{ item.feedback_count }}</div>
+            </div>
+            <div class="class-stat-item">
+              <div class="class-stat-item-label">Pending Qs</div>
+              <div class="class-stat-item-val" style="color: {% if item.unanswered_count > 0 %}var(--warning){% else %}var(--text-primary){% endif %};">
+                {{ item.unanswered_count }}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+            <span>Student Join Code: <strong style="font-family: monospace; color: var(--text-primary); font-size: 0.95rem;">{{ offering.join_code }}</strong></span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+          <!-- 45-Second Feedback Launcher -->
+          <form method="POST" action="{{ url_for('feedback.start_session', class_id=offering.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>Start 45s Feedback Session</span>
+            </button>
+          </form>
+
+          <a href="{{ url_for('classes.detail', class_id=offering.id) }}" class="btn btn-secondary btn-sm" style="width: 100%; text-align: center;">
+            <span>Open Classroom Workspace</span>
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" style="text-align: center; padding: 48px 24px;">
+    <h4>No Classes Configured</h4>
+    <p style="margin-top: 6px; margin-bottom: 20px;">Add a new course-section offering to begin collecting in-class feedback.</p>
+    <button type="button" class="btn btn-primary" onclick="openModal('createClassModal')">Create Class Offering</button>
+  </div>
+{% endif %}
+
+<!-- Modal: Create New Class Offering -->
+<div id="createClassModal" class="modal-backdrop">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h4>Create Course-Section Offering</h4>
+      <button type="button" onclick="closeModal('createClassModal')" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('classes.create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; margin-bottom: 16px;">
+          Set up a new class. UniSync will automatically generate a clean alphanumeric join code.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="new_course_code">Course Code</label>
+            <input type="text" id="new_course_code" name="new_course_code" class="form-control" placeholder="e.g. CS301" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new_course_name">Course Title</label>
+            <input type="text" id="new_course_name" name="new_course_name" class="form-control" placeholder="e.g. Operating Systems" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="new_section_name">Section</label>
+            <input type="text" id="new_section_name" name="new_section_name" class="form-control" placeholder="e.g. CSE-A" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="semester">Semester</label>
+            <input type="number" id="semester" name="semester" class="form-control" placeholder="4" min="1" max="12" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="programme">Programme</label>
+          <input type="text" id="programme" name="programme" class="form-control" placeholder="e.g. B.Tech Computer Science" value="B.Tech Computer Science & Engineering" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="academic_year">Academic Year</label>
+          <input type="text" id="academic_year" name="academic_year" class="form-control" value="2026-2027" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('createClassModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Generate Class Offering</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

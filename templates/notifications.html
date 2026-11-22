@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | UniSync{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="margin: 20px auto 40px auto;">
+  <div style="margin-bottom: 24px;">
+    <h2>In-App Notifications</h2>
+    <p>Academic alerts, teacher replies to your questions, and class activity</p>
+  </div>
+
+  {% if notifications %}
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      {% for n in notifications %}
+        <div class="card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; {% if not n.is_read %}border-left: 4px solid var(--primary-button); background: rgba(139, 85, 68, 0.04);{% endif %}">
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              {% if not n.is_read %}
+                <span class="badge badge-primary" style="font-size: 0.65rem;">New</span>
+              {% endif %}
+              <strong style="color: var(--text-primary); font-size: 0.95rem;">{{ n.title }}</strong>
+              <span style="font-size: 0.775rem; color: var(--text-muted);">&bull; {{ n.created_at|time_ago }}</span>
+            </div>
+            <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">
+              {{ n.message }}
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-left: 16px;">
+            {% if n.link %}
+              <a href="{{ n.link }}" class="btn btn-outline btn-sm" onclick="markRead({{ n.id }})">
+                <span>View</span>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card" style="text-align: center; padding: 48px 24px;">
+      <h4>No Notifications</h4>
+      <p style="margin-top: 6px;">You are all caught up on class updates and teacher replies.</p>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+function markRead(id) {
+  fetch(`/student/api/notifications/mark-read/${id}`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token() }}'
+    }
+  }).catch(err => console.error(err));
+}
+</script>
+{% endblock %}

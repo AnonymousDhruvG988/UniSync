@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}{{ offering.course.name }} ({{ offering.section.name }}) | UniSync{% endblock %}
+
+{% block content %}
+<!-- Class Overview Header -->
+<div class="card" style="margin-bottom: 28px; background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-subtle) 100%);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+        <span class="class-code-badge">{{ offering.course.code }}</span>
+        <span class="badge badge-primary">Section {{ offering.section.name }}</span>
+        <span class="badge badge-neutral">Semester {{ offering.semester }}</span>
+      </div>
+      <h2>{{ offering.course.name }}</h2>
+      <p style="margin-top: 4px;">
+        {{ offering.section.programme }} &bull; Instructor: <strong>{{ offering.teacher.user.full_name }}</strong> ({{ offering.teacher.department }})
+      </p>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      {% if is_teacher %}
+        <!-- Join Code display for teacher -->
+        <div style="text-align: right; background: var(--bg-card); padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Student Join Code</div>
+          <div style="font-size: 1.25rem; font-weight: 800; font-family: monospace; color: var(--primary-button); letter-spacing: 0.05em;">{{ offering.join_code }}</div>
+        </div>
+
+        <!-- Start 45s Feedback Session -->
+        <form method="POST" action="{{ url_for('feedback.start_session', class_id=offering.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-primary">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>Start 45s Feedback Session</span>
+          </button>
+        </form>
+      {% elif is_student %}
+        <!-- Student: Ask Question Button -->
+        <button type="button" class="btn btn-primary" onclick="openModal('askQuestionModal')">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Ask a Question</span>
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Active Session Live Alert Banner -->
+{% if active_session %}
+  <div class="card" style="margin-bottom: 28px; border: 2px solid var(--muted-terracotta); background: rgba(166, 109, 87, 0.08); padding: 20px 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--muted-terracotta); color: white; display: flex; align-items: center; justify-content: center;">
+          <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="live-pulse-badge">
+              <span class="pulse-dot"></span>
+              SURVEY IS GOING ON
+            </span>
+            <span class="roll-code">{{ active_session.remaining_seconds }}s remaining</span>
+          </div>
+          {% if is_teacher %}
+            <h4 style="margin-top: 4px;">45-second lecture feedback gathering in progress</h4>
+          {% else %}
+            <h4 style="margin-top: 4px;">{{ offering.teacher.user.full_name }} is taking feedback of today's class</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">
+              Submit your 3-question understanding feedback directly without needing a QR code.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if is_teacher %}
+        <a href="{{ url_for('feedback.live_session', session_token=active_session.session_token) }}" class="btn btn-primary">
+          <span>Monitor Session &amp; QR</span>
+        </a>
+      {% elif is_student %}
+        {% if has_submitted_active %}
+          <span class="badge badge-success" style="padding: 8px 16px; font-size: 0.9rem;">
+            Response Registered
+          </span>
+        {% else %}
+          <a href="{{ url_for('feedback.scan_feedback', session_token=active_session.session_token) }}" class="btn btn-primary btn-lg">
+            <span>Give Short Feedback Now</span>
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<!-- Workspace Tabs: Questions & Classroom Feedback -->
+<div style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px;">
+  <button type="button" id="tabQuestionsBtn" class="btn btn-primary btn-sm" onclick="switchClassTab('questions')">
+    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    <span>Class Questions ({{ doubts|length }})</span>
+  </button>
+  <button type="button" id="tabFeedbackBtn" class="btn btn-outline btn-sm" onclick="switchClassTab('feedback')">
+    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+    <span>Lecture Feedback &amp; Survey</span>
+    {% if active_session %}
+      <span class="badge badge-error" style="font-size: 0.65rem; margin-left: 6px; padding: 2px 8px; animation: pulseAnimation 1.5s infinite;">SURVEY IS GOING ON</span>
+    {% endif %}
+  </button>
+  {% if is_teacher %}
+    <button type="button" id="tabStudentsBtn" class="btn btn-outline btn-sm" onclick="switchClassTab('students')">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      <span>Enrolled Students ({{ enrolled_students|length }})</span>
+    </button>
+  {% endif %}
+</div>
+
+<!-- SECTION 1: QUESTIONS TAB -->
+<div id="sectionQuestions">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h3>
+        {% if is_teacher %}Questions from Enrolled Students{% else %}My Questions in this Class{% endif %}
+      </h3>
+      <p style="font-size: 0.85rem;">
+        {% if is_teacher %}Review questions, mark status, and post authoritative instructor answers{% else %}Track status and instructor replies for your questions{% endif %}
+      </p>
+    </div>
+
+    {% if is_student %}
+      <button type="button" class="btn btn-primary btn-sm" onclick="openModal('askQuestionModal')">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Ask a Question</span>
+      </button>
+    {% endif %}
+  </div>
+
+  {% if doubts %}
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      {% for q in doubts %}
+        <div class="question-item">
+          <div class="question-meta-row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="badge {% if q.status == 'new' %}badge-error{% elif q.status == 'viewed' %}badge-warning{% elif q.status == 'answered' %}badge-success{% else %}badge-neutral{% endif %}">
+                {{ q.status.title() }}
+              </span>
+              {% if is_teacher %}
+                <span class="roll-code">{{ q.student.roll_number }}</span>
+                <span style="font-weight: 600; font-size: 0.875rem;">{{ q.student.user.full_name }}</span>
+              {% endif %}
+              {% if q.session %}
+                <span class="badge badge-neutral" style="font-size: 0.7rem;">Linked to Feedback Session</span>
+              {% endif %}
+            </div>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">{{ q.created_at|format_datetime }}</span>
+          </div>
+
+          <h4 class="question-title">
+            <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" style="color: inherit;">{{ q.title }}</a>
+          </h4>
+          <p style="font-size: 0.925rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+            {{ q.explanation }}
+          </p>
+
+          <!-- Replies summary if present -->
+          {% if q.replies %}
+            <div class="reply-bubble">
+              <div class="reply-header">
+                <span style="color: var(--primary-button);">
+                  {% if q.latest_reply.author.is_teacher %}
+                    Instructor Response: {{ q.latest_reply.author.full_name }}
+                  {% else %}
+                    Student Follow-up: {{ q.latest_reply.author.full_name }}
+                  {% endif %}
+                </span>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">{{ q.latest_reply.created_at|time_ago }}</span>
+              </div>
+              <p style="font-size: 0.875rem; color: var(--text-primary); margin: 0;">
+                {{ q.latest_reply.message }}
+              </p>
+            </div>
+          {% endif %}
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+            <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" class="btn btn-outline btn-sm">
+              <span>View Discussion &amp; Reply ({{ q.replies|length }})</span>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card" style="text-align: center; padding: 48px 24px;">
+      <h4>No Questions Recorded</h4>
+      <p style="margin-top: 6px;">
+        {% if is_student %}Have a doubt about today's concepts? Submit your question directly to your instructor.{% else %}No questions currently submitted by students in this section.{% endif %}
+      </p>
+      {% if is_student %}
+        <button type="button" class="btn btn-primary" style="margin-top: 16px;" onclick="openModal('askQuestionModal')">Ask Question</button>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<!-- SECTION 2: FEEDBACK HISTORY TAB -->
+<div id="sectionFeedback" style="display: none;">
+  <div style="margin-bottom: 20px;">
+    <h3>Classroom Feedback &amp; Survey Center</h3>
+    <p style="font-size: 0.85rem;">
+      {% if is_teacher %}Historical 45-second lecture feedback sessions and weekly student analytics{% else %}Your in-class survey participation and feedback history for this class{% endif %}
+    </p>
+  </div>
+
+  {% if is_student and active_session and not has_submitted_active %}
+    <!-- Active In-Class Survey Prompt Inside the Feedback Tab -->
+    <div class="card" style="border: 2px solid var(--muted-terracotta); background: rgba(166, 109, 87, 0.08); margin-bottom: 24px; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <span class="survey-in-progress-pill"><span class="pulse-dot"></span> Survey Is Going On</span>
+          <h4 style="margin-top: 6px;">{{ offering.teacher.user.full_name }} is taking feedback of today's class</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">
+            No QR scan required. Click below to submit your 3-question understanding feedback immediately.
+          </p>
+        </div>
+        <a href="{{ url_for('feedback.scan_feedback', session_token=active_session.session_token) }}" class="btn btn-primary btn-lg">
+          <span>Give Short Feedback Now</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if is_teacher %}
+    <!-- Teacher Weekly Satisfaction Bar Graph for this Course Section -->
+    {% if weekly_analytics and weekly_analytics.has_data %}
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="badge badge-primary">Section Trends</span>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">{{ offering.course.code }} &bull; Section {{ offering.section.name }}</span>
+            </div>
+            <h3>Weekly Satisfaction &amp; Comprehension Bar Graph</h3>
+            <p style="font-size: 0.875rem;">Satisfactory score per session (1.0 to 5.0) and comprehension progression for {{ offering.course.name }}</p>
+          </div>
+
+          <div class="chart-stats-summary">
+            <div class="chart-stat-badge">
+              <span class="chart-stat-badge-lbl">Section Avg</span>
+              <span class="chart-stat-badge-val">{{ weekly_analytics.summary.overall_avg }}/5.0</span>
+            </div>
+            <div class="chart-stat-badge">
+              <span class="chart-stat-badge-lbl">Total Submissions</span>
+              <span class="chart-stat-badge-val" style="color: var(--success);">{{ weekly_analytics.summary.total_responses }}</span>
+            </div>
+            <div class="chart-stat-badge">
+              <span class="chart-stat-badge-lbl">Top Session</span>
+              <span class="chart-stat-badge-val" style="font-size: 1rem; color: var(--muted-terracotta);">{{ weekly_analytics.summary.best_week }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Bar Chart -->
+        <div class="weekly-bar-chart">
+          <div class="chart-y-axis">
+            <span>5.0</span>
+            <span>4.0</span>
+            <span>3.0</span>
+            <span>2.0</span>
+            <span>1.0</span>
+            <span>0.0</span>
+          </div>
+
+          <div class="chart-plot-area">
+            <div class="chart-grid-line" style="top: 0%;"></div>
+            <div class="chart-grid-line" style="top: 20%;"></div>
+            <div class="chart-grid-line" style="top: 40%;"></div>
+            <div class="chart-grid-line" style="top: 60%;"></div>
+            <div class="chart-grid-line" style="top: 80%;"></div>
+            <div class="chart-grid-line" style="bottom: 0%;"></div>
+
+            {% for bar in weekly_analytics.weekly_bars %}
+              <div class="chart-bar-col" title="{{ bar.date_label }}: {{ bar.avg_satisfaction }}/5.0 ({{ bar.response_count }} students)">
+                <span class="chart-bar-score">{{ bar.avg_satisfaction }}</span>
+                <div class="chart-bar-pillar" style="height: {{ bar.height_pct }}%;"></div>
+                <span class="chart-x-label">{{ bar.week_label }} ({{ bar.date_label }})</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Weekly Understanding Distribution Breakdown -->
+        <div class="weekly-understanding-grid">
+          {% for bar in weekly_analytics.weekly_bars %}
+            <div class="weekly-und-card">
+              <div class="weekly-und-title">
+                <span>{{ bar.week_label }} ({{ bar.date_label }})</span>
+                <span style="color: var(--primary-button);">{{ bar.avg_satisfaction }}/5</span>
+              </div>
+              <div class="weekly-und-progress">
+                <div style="background: var(--success); width: {{ bar.und_pcts.understood }}%;" title="Understood: {{ bar.und_pcts.understood }}%"></div>
+                <div style="background: var(--warning); width: {{ bar.und_pcts.partially }}%;" title="Partially: {{ bar.und_pcts.partially }}%"></div>
+                <div style="background: var(--error); width: {{ bar.und_pcts.needs_help }}%;" title="Needs Help: {{ bar.und_pcts.needs_help }}%"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+                <span>{{ bar.response_count }} responses</span>
+                <span style="color: var(--success); font-weight: 600;">{{ bar.und_pcts.understood }}% Understood</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if past_sessions %}
+      <div class="card table-card" style="padding: 0; overflow: hidden;">
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Date &amp; Time</th>
+                <th>Status</th>
+                <th>Submissions</th>
+                <th>Avg Satisfaction</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in past_sessions %}
+                <tr>
+                  <td><strong>{{ s.started_at|format_datetime }}</strong></td>
+                  <td><span class="badge badge-neutral">Closed (45s Window)</span></td>
+                  <td><strong>{{ s.responses|length }}</strong> / {{ offering.enrollments|length }} students</td>
+                  <td>
+                    <span style="font-weight: 700; color: var(--muted-terracotta);">{{ s.average_satisfaction }}/5</span>
+                  </td>
+                  <td>
+                    <a href="{{ url_for('feedback.results', session_token=s.session_token) }}" class="btn btn-outline btn-sm">
+                      <span>View Identified Roster</span>
+                      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="card" style="text-align: center; padding: 48px 24px;">
+        <h4>No Past Feedback Sessions</h4>
+        <p style="margin-top: 6px;">Click "Start 45s Feedback Session" during class to collect instant understanding metrics.</p>
+      </div>
+    {% endif %}
+  {% elif is_student %}
+    {% if my_responses %}
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        {% for r in my_responses %}
+          <div class="card" style="padding: 18px 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="badge {% if r.understanding == 'understood' %}badge-success{% elif r.understanding == 'partially' %}badge-warning{% else %}badge-error{% endif %}">
+                Understanding: {{ r.understanding.replace('_', ' ').title() }}
+              </span>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">{{ r.submitted_at|format_datetime }}</span>
+            </div>
+            <div style="font-size: 0.95rem; font-weight: 600; margin-bottom: 4px;">
+              Satisfaction Rating: {{ r.satisfaction }}/5
+            </div>
+            {% if r.concept_feedback %}
+              <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 4px;">
+                Concept to revisit: "{{ r.concept_feedback }}"
+              </p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card" style="text-align: center; padding: 48px 24px;">
+        <h4>No Past Feedback Submissions</h4>
+        <p style="margin-top: 6px;">When your instructor starts a 45-second QR session, your submitted feedback records will appear here.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+
+<!-- SECTION 3: ENROLLED STUDENTS TAB (Teacher Only) -->
+{% if is_teacher %}
+  <div id="sectionStudents" style="display: none;">
+    <div style="margin-bottom: 20px;">
+      <h3>Enrolled Class Roster ({{ enrolled_students|length }})</h3>
+      <p style="font-size: 0.85rem;">Students enrolled in {{ offering.course.name }} ({{ offering.section.name }})</p>
+    </div>
+
+    {% if enrolled_students %}
+      <div class="card table-card" style="padding: 0; overflow: hidden;">
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Serial</th>
+                <th>Roll Number</th>
+                <th>Student Name</th>
+                <th>Programme</th>
+                <th>Semester</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for st in enrolled_students %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td><span class="roll-code">{{ st.roll_number }}</span></td>
+                  <td><strong>{{ st.user.full_name }}</strong></td>
+                  <td>{{ st.programme }}</td>
+                  <td>Semester {{ st.semester }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="card" style="text-align: center; padding: 48px 24px;">
+        <h4>No Students Enrolled Yet</h4>
+        <p style="margin-top: 6px;">Share join code <strong>{{ offering.join_code }}</strong> with your class section.</p>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+<!-- Modal: Ask a Question (Student Only) -->
+{% if is_student %}
+  <div id="askQuestionModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h4>Ask Course Instructor</h4>
+        <button type="button" onclick="closeModal('askQuestionModal')" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">&times;</button>
+      </div>
+      <form method="POST" action="{{ url_for('questions.create') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="class_offering_id" value="{{ offering.id }}">
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="q_title">Question Title / Topic</label>
+            <input type="text" id="q_title" name="title" class="form-control" placeholder="e.g. Time complexity difference in recursion depth" required maxlength="200">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="q_explanation">Detailed Explanation</label>
+            <textarea id="q_explanation" name="explanation" class="form-control" rows="4" placeholder="Detail your specific doubt, the code/concept you are struggling with, and what you've tried..." required></textarea>
+          </div>
+
+          {% if active_session %}
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" name="feedback_session_id" value="{{ active_session.id }}" checked>
+                <span>Link directly to today's active feedback session</span>
+              </label>
+            </div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('askQuestionModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Question</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+<script>
+function switchClassTab(tab) {
+  const secQ = document.getElementById('sectionQuestions');
+  const secF = document.getElementById('sectionFeedback');
+  const secS = document.getElementById('sectionStudents');
+
+  const btnQ = document.getElementById('tabQuestionsBtn');
+  const btnF = document.getElementById('tabFeedbackBtn');
+  const btnS = document.getElementById('tabStudentsBtn');
+
+  secQ.style.display = 'none';
+  secF.style.display = 'none';
+  if (secS) secS.style.display = 'none';
+
+  secQ.classList.remove('tab-fade-in');
+  secF.classList.remove('tab-fade-in');
+  if (secS) secS.classList.remove('tab-fade-in');
+
+  btnQ.className = 'btn btn-outline btn-sm';
+  btnF.className = 'btn btn-outline btn-sm';
+  if (btnS) btnS.className = 'btn btn-outline btn-sm';
+
+  let targetSec = secQ;
+  let targetBtn = btnQ;
+
+  if (tab === 'feedback') {
+    targetSec = secF;
+    targetBtn = btnF;
+  } else if (tab === 'students' && secS) {
+    targetSec = secS;
+    targetBtn = btnS;
+  }
+
+  targetSec.style.display = 'block';
+  targetSec.classList.add('tab-fade-in');
+  targetBtn.className = 'btn btn-primary btn-sm';
+}
+</script>
+{% endblock %}

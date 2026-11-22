@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Analytics History | UniSync{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+  <div>
+    <h2>Classroom Feedback History</h2>
+    <p>Comprehensive record of all 45-second lecture feedback sessions conducted across your course sections</p>
+  </div>
+</div>
+
+<!-- Weekly Student Satisfaction Bar Graph -->
+{% if weekly_analytics and weekly_analytics.has_data %}
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span class="badge badge-primary">Longitudinal Trends</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Weekly Evaluation Curve</span>
+        </div>
+        <h3>Weekly Student Satisfaction &amp; Comprehension Bar Graph</h3>
+        <p style="font-size: 0.875rem;">Satisfactory scores across teaching weeks and cohort understanding distributions</p>
+      </div>
+
+      <div class="chart-stats-summary">
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Term Satisfaction</span>
+          <span class="chart-stat-badge-val">{{ weekly_analytics.summary.overall_avg }}/5.0</span>
+        </div>
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Total Responses</span>
+          <span class="chart-stat-badge-val" style="color: var(--success);">{{ weekly_analytics.summary.total_responses }}</span>
+        </div>
+        <div class="chart-stat-badge">
+          <span class="chart-stat-badge-lbl">Best Session</span>
+          <span class="chart-stat-badge-val" style="font-size: 1rem; color: var(--muted-terracotta);">{{ weekly_analytics.summary.best_week }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Bar Chart -->
+    <div class="weekly-bar-chart">
+      <div class="chart-y-axis">
+        <span>5.0</span>
+        <span>4.0</span>
+        <span>3.0</span>
+        <span>2.0</span>
+        <span>1.0</span>
+        <span>0.0</span>
+      </div>
+
+      <div class="chart-plot-area">
+        <div class="chart-grid-line" style="top: 0%;"></div>
+        <div class="chart-grid-line" style="top: 20%;"></div>
+        <div class="chart-grid-line" style="top: 40%;"></div>
+        <div class="chart-grid-line" style="top: 60%;"></div>
+        <div class="chart-grid-line" style="top: 80%;"></div>
+        <div class="chart-grid-line" style="bottom: 0%;"></div>
+
+        {% for bar in weekly_analytics.weekly_bars %}
+          <div class="chart-bar-col" title="{{ bar.class_code }} (Sec {{ bar.section_name }}) - {{ bar.date_label }}: {{ bar.avg_satisfaction }}/5 ({{ bar.response_count }} students)">
+            <span class="chart-bar-score">{{ bar.avg_satisfaction }}</span>
+            <div class="chart-bar-pillar" style="height: {{ bar.height_pct }}%;"></div>
+            <span class="chart-x-label">{{ bar.week_label }} ({{ bar.date_label }})</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Weekly Understanding Distribution Breakdown -->
+    <div class="weekly-understanding-grid">
+      {% for bar in weekly_analytics.weekly_bars %}
+        <div class="weekly-und-card">
+          <div class="weekly-und-title">
+            <span>{{ bar.week_label }} ({{ bar.date_label }})</span>
+            <span style="color: var(--primary-button);">{{ bar.avg_satisfaction }}/5</span>
+          </div>
+          <div class="weekly-und-progress">
+            <div style="background: var(--success); width: {{ bar.und_pcts.understood }}%;" title="Understood: {{ bar.und_pcts.understood }}%"></div>
+            <div style="background: var(--warning); width: {{ bar.und_pcts.partially }}%;" title="Partially: {{ bar.und_pcts.partially }}%"></div>
+            <div style="background: var(--error); width: {{ bar.und_pcts.needs_help }}%;" title="Needs Help: {{ bar.und_pcts.needs_help }}%"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+            <span>{{ bar.response_count }} responses</span>
+            <span style="color: var(--success); font-weight: 600;">{{ bar.und_pcts.understood }}% Understood</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+{% if sessions %}
+  <div class="card table-card" style="padding: 0; overflow: hidden;">
+    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Session Date &amp; Time</th>
+            <th>Course</th>
+            <th>Section</th>
+            <th>Enrolled Students</th>
+            <th>Verified Submissions</th>
+            <th>Completion Rate</th>
+            <th>Avg Satisfaction</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sessions %}
+            {% set off = s.class_offering %}
+            {% set enrolled_count = off.enrollments|length %}
+            {% set resp_count = s.responses|length %}
+            {% set comp_pct = (resp_count / enrolled_count * 100)|round(1) if enrolled_count > 0 else 0 %}
+            <tr>
+              <td>
+                <strong>{{ s.started_at|format_datetime }}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">45s Window</div>
+              </td>
+              <td>
+                <span class="class-code-badge">{{ off.course.code }}</span>
+                <span style="font-weight: 600; margin-left: 4px;">{{ off.course.name }}</span>
+              </td>
+              <td>
+                <span class="badge badge-primary">Sec {{ off.section.name }}</span>
+              </td>
+              <td>{{ enrolled_count }}</td>
+              <td>
+                <strong>{{ resp_count }}</strong>
+              </td>
+              <td>
+                <span style="font-weight: 600; color: var(--success);">{{ comp_pct }}%</span>
+              </td>
+              <td>
+                <span style="font-weight: 700; color: var(--muted-terracotta);">{{ s.average_satisfaction }}/5</span>
+              </td>
+              <td>
+                <a href="{{ url_for('feedback.results', session_token=s.session_token) }}" class="btn btn-outline btn-sm">
+                  <span>View Full Roster</span>
+                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="card" style="text-align: center; padding: 48px 24px;">
+    <h4>No Feedback Sessions Yet</h4>
+    <p style="margin-top: 6px;">Initiate an in-class 45-second feedback check-in from your dashboard or classroom page.</p>
+  </div>
+{% endif %}
+{% endblock %}

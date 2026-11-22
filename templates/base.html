@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}UniSync | A better way to learn. A better way to connect.{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
+</head>
+<body data-role="{{ current_user.role if current_user else '' }}">
+
+  <!-- Top Navigation (Apple iOS 26 Inspired Translucent Frosted Glass) -->
+  <nav class="site-nav">
+    <div class="container">
+      <a href="{{ url_for('auth.index') }}" class="nav-brand">
+        <div class="brand-icon">
+          <!-- Minimalist clean sync node SVG -->
+          <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+        </div>
+        <span>UniSync</span>
+        <span class="brand-tagline">Academic Workspace</span>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      {% if current_user %}
+        <ul class="nav-links">
+          {% if current_user.is_teacher %}
+            <li><a href="{{ url_for('teacher.dashboard') }}" class="nav-link {% if request.endpoint == 'teacher.dashboard' %}active{% endif %}">Overview</a></li>
+            <li><a href="{{ url_for('teacher.classes') }}" class="nav-link {% if request.endpoint == 'teacher.classes' %}active{% endif %}">My Classes</a></li>
+            <li><a href="{{ url_for('teacher.feedback_history') }}" class="nav-link {% if request.endpoint == 'teacher.feedback_history' %}active{% endif %}">Feedback Results</a></li>
+            <li><a href="{{ url_for('teacher.questions') }}" class="nav-link {% if request.endpoint == 'teacher.questions' %}active{% endif %}">Questions</a></li>
+          {% elif current_user.is_student %}
+            <li><a href="{{ url_for('student.dashboard') }}" class="nav-link {% if request.endpoint == 'student.dashboard' %}active{% endif %}">Overview</a></li>
+            <li><a href="{{ url_for('student.classes') }}" class="nav-link {% if request.endpoint == 'student.classes' %}active{% endif %}">My Classes</a></li>
+            <li><a href="{{ url_for('student.questions') }}" class="nav-link {% if request.endpoint == 'student.questions' %}active{% endif %}">My Questions</a></li>
+            <li><a href="{{ url_for('student.notifications') }}" class="nav-link {% if request.endpoint == 'student.notifications' %}active{% endif %}">Notifications</a></li>
+          {% endif %}
+        </ul>
+      {% endif %}
+
+      <!-- Right Nav Actions -->
+      <div class="nav-actions">
+        <!-- Theme Toggle -->
+        <button type="button" class="notif-btn theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme" aria-label="Toggle Light or Dark Mode">
+          <!-- Moon Icon (shown in light mode) -->
+          <svg class="icon-sm theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <!-- Sun Icon (shown in dark mode) -->
+          <svg class="icon-sm theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        {% if current_user %}
+          <!-- Notification Bell -->
+          {% if current_user.is_student %}
+            <a href="{{ url_for('student.notifications') }}" class="notif-btn" title="View Notifications" aria-label="Notifications">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              {% if unread_notifications_count > 0 %}
+                <span class="notif-badge">{{ unread_notifications_count }}</span>
+              {% endif %}
+            </a>
+          {% endif %}
+
+          <!-- User Pill & Signout -->
+          <div class="user-pill">
+            <div class="user-avatar">
+              {{ current_user.full_name[:1] }}
+            </div>
+            <span>{{ current_user.full_name.split(' ')[0] }}</span>
+            <span class="badge badge-neutral" style="font-size: 0.65rem;">
+              {{ current_user.role.title() }}
+            </span>
+          </div>
+
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm" title="Sign out">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Exit</span>
+          </a>
+
+          <!-- Mobile Toggle -->
+          <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle Mobile Navigation">
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Sign In</a>
+          <a href="{{ url_for('auth.signup') }}" class="btn btn-primary btn-sm">Create Account</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Backdrop & Drawer Menu -->
+  <div id="mobileMenuBackdrop" class="mobile-menu-backdrop" onclick="toggleMobileMenu()"></div>
+  <div id="mobileMenuDrawer" class="mobile-drawer">
+    {% if current_user %}
+      <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px;">
+        <div class="user-pill" style="margin: 0;">
+          <div class="user-avatar">{{ current_user.full_name[:1] }}</div>
+          <span>{{ current_user.full_name.split(' ')[0] }}</span>
+          <span class="badge badge-neutral" style="font-size: 0.65rem;">{{ current_user.role.title() }}</span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="toggleMobileMenu()" aria-label="Close menu">&times;</button>
+      </div>
+
+      {% if current_user.is_teacher %}
+        <a href="{{ url_for('teacher.dashboard') }}" class="mobile-nav-link {% if request.endpoint == 'teacher.dashboard' %}active{% endif %}">Overview</a>
+        <a href="{{ url_for('teacher.classes') }}" class="mobile-nav-link {% if request.endpoint == 'teacher.classes' %}active{% endif %}">My Classes</a>
+        <a href="{{ url_for('teacher.feedback_history') }}" class="mobile-nav-link {% if request.endpoint == 'teacher.feedback_history' %}active{% endif %}">Feedback Results</a>
+        <a href="{{ url_for('teacher.questions') }}" class="mobile-nav-link {% if request.endpoint == 'teacher.questions' %}active{% endif %}">Questions</a>
+        <a href="{{ url_for('teacher.profile') }}" class="mobile-nav-link {% if request.endpoint == 'teacher.profile' %}active{% endif %}">Faculty Profile</a>
+      {% elif current_user.is_student %}
+        <a href="{{ url_for('student.dashboard') }}" class="mobile-nav-link {% if request.endpoint == 'student.dashboard' %}active{% endif %}">Overview</a>
+        <a href="{{ url_for('student.classes') }}" class="mobile-nav-link {% if request.endpoint == 'student.classes' %}active{% endif %}">My Classes</a>
+        <a href="{{ url_for('student.questions') }}" class="mobile-nav-link {% if request.endpoint == 'student.questions' %}active{% endif %}">My Questions</a>
+        <a href="{{ url_for('student.notifications') }}" class="mobile-nav-link {% if request.endpoint == 'student.notifications' %}active{% endif %}">Notifications ({{ unread_notifications_count }})</a>
+        <a href="{{ url_for('student.profile') }}" class="mobile-nav-link {% if request.endpoint == 'student.profile' %}active{% endif %}">Student Profile</a>
+      {% endif %}
+      <hr style="border: none; border-top: 1px solid var(--border-light); margin: 8px 0;">
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm" style="width: 100%;">Sign Out</a>
+    {% else %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="font-weight: 700; color: var(--text-primary);">UniSync Menu</span>
+        <button type="button" class="btn btn-outline btn-sm" onclick="toggleMobileMenu()" aria-label="Close menu">&times;</button>
+      </div>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-outline" style="width: 100%;">Sign In</a>
+      <a href="{{ url_for('auth.signup') }}" class="btn btn-primary" style="width: 100%;">Create Account</a>
+    {% endif %}
+  </div>
+
+  <!-- Real-Time Student Live Survey Notification Container -->
+  {% if current_user and current_user.is_student %}
+    <div id="globalStudentSurveyAlert" class="container" style="display: none; padding-top: 16px;"></div>
+  {% endif %}
+
+  <!-- Main Body Content -->
+  <main class="main-content">
+    <div class="container">
+      <!-- Flash Alert Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="alert-container">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">
+                <span>{{ message }}</span>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; color:inherit; font-size:1.1rem; line-height:1;">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Responsive Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div>
+          <strong>UniSync</strong> &mdash; A better way to learn. A better way to connect.
+          <p style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);">
+            Dedicated University Classroom Platform &bull; Built with Python Flask &amp; Vanilla Architecture
+          </p>
+        </div>
+        <div style="font-size: 0.825rem; color: var(--text-muted);">
+          BU100 SDG 4 Action Lab Artefact &bull; Academic Year 2026&ndash;2027
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

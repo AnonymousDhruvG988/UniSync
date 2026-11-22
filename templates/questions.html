@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Questions &amp; Doubts Workspace | UniSync{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+  <div>
+    <h2>
+      {% if is_teacher %}Classroom Questions Management{% else %}My Academic Questions{% endif %}
+    </h2>
+    <p>
+      {% if is_teacher %}Review and answer questions submitted by students enrolled in your assigned sections{% else %}Track questions asked across your enrolled university subjects{% endif %}
+    </p>
+  </div>
+
+  {% if not is_teacher %}
+    <button type="button" class="btn btn-primary" onclick="openModal('askQuestionModal')">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      <span>Ask a Question</span>
+    </button>
+  {% endif %}
+</div>
+
+<!-- Filter & Search Bar -->
+<div class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <!-- Search -->
+    <div class="table-search-box" style="flex: 1; max-width: 360px;">
+      <svg class="icon-sm table-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="questionSearchInput" class="table-search-input" placeholder="Search questions or concepts...">
+    </div>
+
+    <!-- Status Filters -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Status:</span>
+      <a href="?status=all" class="filter-pill {% if status_filter == 'all' %}active{% endif %}">All</a>
+      <a href="?status=new" class="filter-pill {% if status_filter == 'new' %}active{% endif %}">New</a>
+      <a href="?status=viewed" class="filter-pill {% if status_filter == 'viewed' %}active{% endif %}">Viewed</a>
+      <a href="?status=answered" class="filter-pill {% if status_filter == 'answered' %}active{% endif %}">Answered</a>
+      <a href="?status=resolved" class="filter-pill {% if status_filter == 'resolved' %}active{% endif %}">Resolved</a>
+    </div>
+  </div>
+</div>
+
+<!-- Questions Feed -->
+{% if doubts %}
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    {% for q in doubts %}
+      <div class="question-item">
+        <div class="question-meta-row">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="badge {% if q.status == 'new' %}badge-error{% elif q.status == 'viewed' %}badge-warning{% elif q.status == 'answered' %}badge-success{% else %}badge-neutral{% endif %}">
+              {{ q.status.title() }}
+            </span>
+            <span class="class-code-badge">{{ q.class_offering.course.code }}</span>
+            <span class="badge badge-neutral">Sec {{ q.class_offering.section.name }}</span>
+
+            {% if is_teacher %}
+              <span class="roll-code">{{ q.student.roll_number }}</span>
+              <span style="font-weight: 600; font-size: 0.875rem;">{{ q.student.user.full_name }}</span>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">{{ q.created_at|format_datetime }}</span>
+        </div>
+
+        <h4 class="question-title">
+          <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" style="color: inherit;">{{ q.title }}</a>
+        </h4>
+
+        <p style="font-size: 0.925rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+          {{ q.explanation }}
+        </p>
+
+        <!-- Instructor reply snippet if available -->
+        {% if q.replies %}
+          {% set rep = q.replies[-1] %}
+          <div class="reply-bubble" style="margin-top: 8px; padding: 12px 14px;">
+            <div class="reply-header">
+              <span style="color: var(--primary-button);">Latest Response: {{ rep.author.full_name }}</span>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">{{ rep.created_at|time_ago }}</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-primary); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+              "{{ rep.message }}"
+            </p>
+          </div>
+        {% endif %}
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-light);">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">
+            {{ q.replies|length }} {% if q.replies|length == 1 %}reply{% else %}replies{% endif %} &bull; {{ q.class_offering.course.name }}
+          </span>
+          <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" class="btn btn-outline btn-sm">
+            <span>Open Discussion</span>
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" style="text-align: center; padding: 48px 24px;">
+    <h4>No Questions Found</h4>
+    <p style="margin-top: 6px;">There are no questions matching the current filter selection.</p>
+  </div>
+{% endif %}
+
+<!-- Modal: Ask a Question (Student Only) -->
+{% if not is_teacher %}
+  <div id="askQuestionModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h4>Submit New Question</h4>
+        <button type="button" onclick="closeModal('askQuestionModal')" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">&times;</button>
+      </div>
+      <form method="POST" action="{{ url_for('questions.create') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="modal_class_offering">Select Enrolled Class</label>
+            <select id="modal_class_offering" name="class_offering_id" class="form-control" required>
+              <option value="">-- Choose Course Section --</option>
+              {% for cl in enrolled_classes %}
+                <option value="{{ cl.id }}">{{ cl.course.code }}: {{ cl.course.name }} (Sec {{ cl.section.name }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal_q_title">Question Title</label>
+            <input type="text" id="modal_q_title" name="title" class="form-control" placeholder="e.g. Memory complexity in dynamic programming" required maxlength="200">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal_q_explanation">Detailed Explanation</label>
+            <textarea id="modal_q_explanation" name="explanation" class="form-control" rows="4" placeholder="Describe the specific principle or algorithm you need clarification on..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('askQuestionModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit to Instructor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/questions.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard | UniSync{% endblock %}
+
+{% block content %}
+<!-- Student Header Information Card -->
+<div class="card" style="margin-bottom: 28px; background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-subtle) 100%);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+        <span class="badge badge-primary">Student Workspace</span>
+        <span class="roll-code">{{ student.roll_number }}</span>
+      </div>
+      <h2>{{ current_user.full_name }}</h2>
+      <p style="margin-top: 4px;">
+        {{ student.programme }} &bull; Semester {{ student.semester }} &bull; Section {{ student.section }}
+      </p>
+    </div>
+
+    <!-- Quick Action: Join Class Button -->
+    <div>
+      <button type="button" class="btn btn-primary" onclick="openModal('joinClassModal')">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Join Class with Code</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Active Classroom Feedback Alert Banner (If teacher launched a session right now!) -->
+{% if active_sessions %}
+  {% for sess in active_sessions %}
+    <div class="card" style="margin-bottom: 28px; border: 2px solid var(--muted-terracotta); background: rgba(166, 109, 87, 0.08); padding: 20px 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--muted-terracotta); color: white; display: flex; align-items: center; justify-content: center;">
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="live-pulse-badge">
+                <span class="pulse-dot"></span>
+                In-Class Session Live
+              </span>
+              <span class="roll-code">{{ sess.remaining_seconds }}s remaining</span>
+            </div>
+            <h3 style="margin-top: 4px;">{{ sess.class_offering.course.name }} ({{ sess.class_offering.section.name }})</h3>
+            <p style="font-size: 0.85rem; margin-top: 2px;">
+              {{ sess.class_offering.teacher.user.full_name }} opened classroom feedback. Check in now before the 45-second timer concludes.
+            </p>
+          </div>
+        </div>
+
+        <a href="{{ url_for('feedback.scan_feedback', session_token=sess.session_token) }}" class="btn btn-primary btn-lg">
+          <span>Submit Feedback Now</span>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Key Metrics Grid -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">Enrolled Subjects</span>
+    <span class="stat-value">{{ classes|length }}</span>
+    <span class="stat-desc">Active semester courses</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Pending Questions</span>
+    <span class="stat-value" style="color: var(--warning);">{{ pending_questions_count }}</span>
+    <span class="stat-desc">Awaiting instructor response</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Teacher Answers</span>
+    <span class="stat-value" style="color: var(--success);">{{ answered_questions|length }}</span>
+    <span class="stat-desc">Questions answered or resolved</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Past Check-Ins</span>
+    <span class="stat-value">{{ past_feedback_count }}</span>
+    <span class="stat-desc">Classroom submissions</span>
+  </div>
+</div>
+
+<!-- Enrolled Classes Section -->
+<div style="margin-bottom: 40px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h3>My Enrolled Classes</h3>
+      <p style="font-size: 0.875rem;">Select any subject to view lecture feedback, ask questions, or review notes</p>
+    </div>
+    <a href="{{ url_for('student.classes') }}" class="btn btn-outline btn-sm">View All Classes</a>
+  </div>
+
+  {% if classes %}
+    <div class="classes-grid">
+      {% for offering in classes %}
+        <div class="class-card">
+          <div>
+            <div class="class-card-header">
+              <span class="class-code-badge">{{ offering.course.code }}</span>
+              <span class="badge badge-neutral">Sec {{ offering.section.name }}</span>
+            </div>
+            <h4 class="class-title">{{ offering.course.name }}</h4>
+            <div class="class-meta">
+              Instructor: <strong>{{ offering.teacher.user.full_name }}</strong>
+            </div>
+
+            <div class="class-stats-row">
+              <div class="class-stat-item">
+                <div class="class-stat-item-label">Credits</div>
+                <div class="class-stat-item-val">{{ offering.course.credits }}</div>
+              </div>
+              <div class="class-stat-item">
+                <div class="class-stat-item-label">Semester</div>
+                <div class="class-stat-item-val">{{ offering.semester }}</div>
+              </div>
+              <div class="class-stat-item">
+                <div class="class-stat-item-label">Classmates</div>
+                <div class="class-stat-item-val">{{ offering.enrollments|length }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <a href="{{ url_for('classes.detail', class_id=offering.id) }}" class="btn btn-primary btn-sm" style="flex: 1;">
+              <span>Open Classroom</span>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card" style="text-align: center; padding: 48px 24px;">
+      <h4>No Classes Enrolled Yet</h4>
+      <p style="margin-top: 6px; margin-bottom: 20px;">Use your instructor's class code to join your semester courses.</p>
+      <button type="button" class="btn btn-primary" onclick="openModal('joinClassModal')">Join Class</button>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Two-Column Layout: Questions & Recent Activity -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
+  <!-- Questions Asked by Student -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+      <h4>My Recent Questions</h4>
+      <a href="{{ url_for('student.questions') }}" style="font-size: 0.85rem; font-weight: 600;">View All</a>
+    </div>
+
+    {% if my_questions %}
+      {% for q in my_questions[:4] %}
+        <div style="padding: 12px 0; border-bottom: 1px solid var(--border-light);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span class="badge {% if q.status == 'answered' %}badge-success{% elif q.status == 'resolved' %}badge-neutral{% elif q.status == 'viewed' %}badge-warning{% else %}badge-primary{% endif %}">
+              {{ q.status.title() }}
+            </span>
+            <span style="font-size: 0.775rem; color: var(--text-muted);">{{ q.created_at|time_ago }}</span>
+          </div>
+          <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; display: block;">
+            {{ q.title }}
+          </a>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 3px;">
+            {{ q.class_offering.course.name }} &bull; {{ q.replies|length }} replies
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size: 0.875rem; color: var(--text-muted); text-align: center; padding: 24px 0;">
+        You haven't submitted any questions yet. Use your classroom page to ask doubts directly to faculty.
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Recent Teacher Answers -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+      <h4>Recent Instructor Replies</h4>
+      <span class="badge badge-neutral">{{ answered_questions|length }} Answered</span>
+    </div>
+
+    {% if answered_questions %}
+      {% for q in answered_questions %}
+        {% if q.latest_reply %}
+          <div style="padding: 12px 0; border-bottom: 1px solid var(--border-light);">
+            <div style="font-size: 0.825rem; font-weight: 600; color: var(--muted-terracotta);">
+              {{ q.class_offering.teacher.user.full_name }} replied:
+            </div>
+            <p style="font-size: 0.875rem; color: var(--text-primary); margin: 4px 0 6px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+              "{{ q.latest_reply.message }}"
+            </p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">On: {{ q.title[:30] }}...</span>
+              <a href="{{ url_for('questions.detail', doubt_id=q.id) }}" class="btn btn-outline btn-sm" style="padding: 3px 8px; font-size: 0.75rem;">View Thread</a>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <p style="font-size: 0.875rem; color: var(--text-muted); text-align: center; padding: 24px 0;">
+        No teacher replies yet. When an instructor replies to your question, it will appear here.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal: Join Class with Code -->
+<div id="joinClassModal" class="modal-backdrop">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h4>Join Class Offering</h4>
+      <button type="button" onclick="closeModal('joinClassModal')" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('classes.join') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; margin-bottom: 16px;">
+          Enter the unique 6-character class code provided by your course faculty (e.g. <code>PROG-A</code>, <code>DATA-A</code>, or <code>PHYS-A</code>).
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="join_code">Class Join Code</label>
+          <input type="text" id="join_code" name="join_code" class="form-control" placeholder="e.g. PROG-A" required uppercase style="letter-spacing: 0.1em; font-weight: 700; text-transform: uppercase;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('joinClassModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Join Class</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

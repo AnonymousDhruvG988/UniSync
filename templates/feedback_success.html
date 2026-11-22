@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | UniSync{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="margin: 40px auto; text-align: center;">
+  <div class="card" style="padding: 48px 32px;">
+    <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--success-bg); color: var(--success); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+      <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+
+    <h2 style="margin-bottom: 8px;">{{ heading }}</h2>
+    <p style="margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto;">
+      {{ message }}
+    </p>
+
+    {% if response %}
+      <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 18px; max-width: 440px; margin: 0 auto 28px auto; text-align: left;">
+        <div style="font-size: 0.775rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">Submission Summary</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem;">
+          <span style="color: var(--text-secondary);">Student:</span>
+          <strong>{{ response.student_name }} (<span class="roll-code">{{ response.student_roll_number }}</span>)</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem;">
+          <span style="color: var(--text-secondary);">Understanding:</span>
+          <span class="badge {% if response.understanding == 'understood' %}badge-success{% elif response.understanding == 'partially' %}badge-warning{% else %}badge-error{% endif %}">
+            {{ response.understanding.replace('_', ' ').title() }}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem;">
+          <span style="color: var(--text-secondary);">Satisfaction:</span>
+          <strong>{{ response.satisfaction }} / 5</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+          <span style="color: var(--text-secondary);">Recorded At:</span>
+          <span>{{ response.submitted_at|format_time }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    <div style="display: flex; justify-content: center; gap: 12px;">
+      {% if class_id %}
+        <a href="{{ url_for('classes.detail', class_id=class_id) }}" class="btn btn-primary">
+          <span>Return to Classroom</span>
+        </a>
+      {% endif %}
+      <a href="{{ url_for('student.dashboard') }}" class="btn btn-secondary">
+        <span>Student Dashboard</span>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
